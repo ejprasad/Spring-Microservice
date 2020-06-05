@@ -1,0 +1,154 @@
+<html>
+<head>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+
+<script>
+
+google.charts.load('current', {'packages':['corechart']});
+
+google.charts.setOnLoadCallback(drawChart);
+
+function drawChart() {
+		
+		var jsonData = $.ajax({
+          url: "http://localhost:8083/getStats",
+          async: false
+          }).responseText
+		  
+		var temp = JSON.parse(jsonData);
+		document.getElementById("serviceInfo").innerHTML=temp[0].msg
+		var dataMap = temp.reduce((count, p) => ({ ...count, [p.language]: (count[p.language] || 0) + p.stargazersCount }),{});
+		
+		var pieData = new google.visualization.DataTable();
+		
+		var dt = Object.entries(dataMap)
+		
+		pieData.addColumn('string', 'Language');
+		pieData.addColumn('number', 'Percentage');
+		var pieDataColors = [];
+		
+		function getRandomColor() {
+			var letters = '0123456789ABCDEF';
+			var color = '#';
+			for (var i = 0; i < 6; i++) {
+				color += letters[Math.floor(Math.random() * 16)];
+			}
+			return color;
+		}
+		
+		
+		
+		for(var i=0;i<dt.length;i++){
+
+			pieData.addRow([dt[i][0],dt[i][1]]);
+			var colr = getRandomColor();
+			pieDataColors.push(colr);
+			
+			var div = document.getElementById("repoDetails");
+			
+			var subDiv = document.createElement("div");
+			subDiv.style.display="none"
+			div.appendChild(subDiv)
+			var h1 = document.createElement("h1")
+			h1.innerHTML = dt[i][0];
+			h1.style.color=colr;
+			h1.setAttribute("align","center");
+			subDiv.appendChild(h1)
+			var ul = document.createElement("ul");
+			
+			var mySet = new Set(temp.filter(entry=>entry.language==dt[i][0]));
+			
+			var table = document.createElement("table");
+			table.setAttribute("cellspacing",0);
+			table.setAttribute("cellpadding",0);
+			table.setAttribute("align","center");
+			table.style.border="none";
+			
+			
+			var header = table.createTHead();
+			var row = header.insertRow(0);
+			var cell1 = row.insertCell(0);
+			cell1.style.color=colr
+			cell1.innerHTML = "<b>  </b>";
+			var cell2 = row.insertCell(1);
+			cell2.style.color=colr
+			cell2.innerHTML = "<b>Repository Names</b>";
+			var cell3 = row.insertCell(2);
+			cell3.innerHTML = "<b>Stars</b>";
+			cell3.style.color=colr
+			
+			var tbody = document.createElement('tbody');
+			var itemCount=1;
+			mySet.forEach(item=>{
+				row = document.createElement("tr");
+				cell1 = document.createElement("td")
+				cell1.innerHTML = itemCount++ +".   ";
+				cell1.style.color=colr;
+				row.appendChild(cell1);
+				
+				cell2 = document.createElement("td")
+				cell2.innerHTML=item.fullName;
+				cell2.style.color=colr;
+				cell2 = row.appendChild(cell2);
+				
+				cell3 = document.createElement("td")
+				cell3.innerHTML=item.stargazersCount;
+				cell3.style.color=colr;
+				cell3 = row.appendChild(cell3);
+				
+				tbody.appendChild(row);
+			});
+			
+			table.appendChild(tbody);
+			subDiv.appendChild(table)
+			var li = document.createElement("li");
+		}
+
+		var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+		
+		google.visualization.events.addListener(chart, 'select', function() {
+			
+			var selectedItem = chart.getSelection()[0];
+			
+			if(selectedItem){
+				var selected_index =  selectedItem.row;
+			
+				console.log(pieDataColors[selected_index]);
+				
+				for(var j=0;j<document.getElementById("repoDetails").childNodes.length;j++){
+				
+					if(j==selected_index)
+						document.getElementById("repoDetails").childNodes[selected_index].style.display="block"
+					else
+						document.getElementById("repoDetails").childNodes[j].style.display="none"
+				}
+				
+			}
+			
+			
+			
+		})
+
+		
+        var options = {
+			title: 'Git Repo Star Trends',
+			colors: pieDataColors
+        };
+		
+		chart.draw(pieData, options);
+
+      }
+
+
+</script>
+</head>
+
+<body>
+	<h1 id="serviceInfo"></h1>
+    <div id="piechart" style="width: auto; height: 500px;"></div>
+	<div id="repoDetails" style="width: auto; height: auto;"></div>
+ </body>
+ 
+  
+</html>
